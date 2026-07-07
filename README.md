@@ -1,2 +1,18 @@
-# intelligent-medicine-robot
-An intelligent medicine recognition and robotic handling system.
+# 岐黄智取：智能问诊与机器人抓药系统
+
+## 项目简介
+
+“岐黄智取”是一套面向中医药智能服务场景的问诊与机器人抓药协作系统。
+
+系统通过 PC 端 Web 界面接收用户输入，结合智能问诊与药品方案生成能力形成结构化抓取任务，并将任务发送至 ELFBoard 边缘计算平台。ELFBoard 负责药品视觉识别、目标定位与机械臂任务调度，最终由机械臂完成自动抓取。
+
+本仓库包含 PC 端、ELFBoard 端以及机械臂固件三部分主体代码。
+
+## 系统组成
+
+### 1. PC 端
+
+目录：
+
+```text
+robot_m_pc/
