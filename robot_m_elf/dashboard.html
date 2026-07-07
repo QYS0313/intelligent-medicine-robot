@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>机器人抓药控制台</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Arial, "Microsoft YaHei", sans-serif;
+      background: #0b0d0d;
+      color: #e5e9e7;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 320px; }
+    button, input { font: inherit; }
+    button { min-height: 38px; border: 1px solid #4a5350; border-radius: 5px; background: #202624; color: #e8ecea; padding: 0 14px; cursor: pointer; }
+    button:hover { background: #2a322f; border-color: #66736e; }
+    button:disabled { cursor: not-allowed; opacity: .45; }
+    .primary { background: #087f68; border-color: #17aa8c; color: #fff; }
+    .primary:hover { background: #0a9479; }
+    .danger { background: #9c3035; border-color: #d25359; color: #fff; }
+    .danger:hover { background: #b43a40; }
+    header { min-height: 64px; background: #121615; border-bottom: 1px solid #303735; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 22px; }
+    h1 { margin: 0; font-size: 21px; letter-spacing: 0; }
+    h2 { margin: 0; font-size: 15px; letter-spacing: 0; }
+    .header-actions, .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    main { padding: 16px 22px 24px; max-width: 1500px; margin: 0 auto; }
+    .status-strip { display: grid; grid-template-columns: repeat(4, minmax(150px, 1fr)); border: 1px solid #303735; background: #141918; margin-bottom: 14px; }
+    .metric { padding: 12px 14px; border-right: 1px solid #303735; min-width: 0; }
+    .metric:last-child { border-right: 0; }
+    .metric-label { font-size: 12px; color: #8f9a96; margin-bottom: 5px; }
+    .metric-value { font-weight: 700; overflow-wrap: anywhere; }
+    .good { color: #4bd6a6; }
+    .warn { color: #f0b54a; }
+    .bad { color: #ff7076; }
+    .workspace { display: grid; grid-template-columns: minmax(0, 2fr) minmax(300px, .85fr); gap: 14px; }
+    .camera-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .panel { border: 1px solid #303735; background: #141918; border-radius: 6px; overflow: hidden; }
+    .panel-head { min-height: 42px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 12px; border-bottom: 1px solid #303735; background: #181e1c; }
+    .camera-frame { position: relative; aspect-ratio: 4 / 3; background: #050606; display: grid; place-items: center; overflow: hidden; }
+    .camera-frame img { width: 100%; height: 100%; object-fit: contain; }
+    .camera-empty { position: absolute; inset: 0; display: grid; place-items: center; color: #7f8985; background: #050606; font-size: 14px; }
+    .camera-frame img[hidden], .camera-empty[hidden] { display: none; }
+    .side-stack { display: grid; gap: 12px; align-content: start; }
+    .task-form { padding: 12px; display: grid; gap: 10px; }
+    .field label { display: block; color: #8f9a96; font-size: 12px; margin-bottom: 5px; }
+    .field input { width: 100%; min-height: 38px; border: 1px solid #46504c; border-radius: 4px; padding: 7px 9px; background: #0d1110; color: #f0f3f1; }
+    .process-list { margin: 0; padding: 4px 12px 10px; list-style: none; }
+    .process-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid #29302e; }
+    .process-list li:last-child { border-bottom: 0; }
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: #d74a50; flex: none; box-shadow: 0 0 7px rgba(215,74,80,.45); }
+    .dot.on { background: #3ee1ad; box-shadow: 0 0 8px rgba(62,225,173,.55); }
+    .process-name { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .section { margin-top: 14px; }
+    .capture-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; padding: 10px; }
+    .capture { border: 1px solid #303735; min-width: 0; background: #0d1110; }
+    .capture img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: #050606; }
+    .capture-name { padding: 7px; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .empty { padding: 26px; color: #818b87; text-align: center; }
+    .logs { height: 250px; overflow: auto; background: #070909; color: #d8ded7; padding: 9px 11px; font-family: monospace; font-size: 12px; line-height: 1.55; }
+    .log-line { white-space: pre-wrap; overflow-wrap: anywhere; }
+    .log-time { color: #78837f; }
+    .log-source { color: #48d4a5; }
+    @media (max-width: 960px) {
+      .workspace { grid-template-columns: 1fr; }
+      .status-strip { grid-template-columns: repeat(2, 1fr); }
+      .metric:nth-child(2) { border-right: 0; }
+      .metric:nth-child(-n+2) { border-bottom: 1px solid #303735; }
+      .capture-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 620px) {
+      header { align-items: flex-start; flex-direction: column; padding: 12px; }
+      main { padding: 10px 12px 18px; }
+      .camera-grid, .capture-grid { grid-template-columns: 1fr; }
+      .header-actions { width: 100%; }
+      .header-actions button { flex: 1; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>机器人抓药控制台</h1>
+    <div class="header-actions">
+      <button id="startButton" class="primary">启动系统</button>
+      <button id="stopButton">停止系统</button>
+      <button id="emergencyButton" class="danger">急停</button>
+    </div>
+  </header>
+  <main>
+    <section class="status-strip">
+      <div class="metric"><div class="metric-label">系统进程</div><div id="systemStatus" class="metric-value">未启动</div></div>
+      <div class="metric"><div class="metric-label">机械臂任务</div><div id="taskStatus" class="metric-value">等待任务</div></div>
+      <div class="metric"><div class="metric-label">当前药仓</div><div id="currentSlot" class="metric-value">-</div></div>
+      <div class="metric"><div class="metric-label">收药计数</div><div id="collectionStatus" class="metric-value">0 / 0</div></div>
+    </section>
+
+    <section class="workspace">
+      <div class="camera-grid">
+        <article class="panel">
+          <div class="panel-head"><h2>抓药观察相机</h2><span id="pickCameraState">等待画面</span></div>
+          <div class="camera-frame"><img id="pickCamera" alt="抓药观察相机画面" hidden><div id="pickCameraEmpty" class="camera-empty">无画面</div></div>
+        </article>
+        <article class="panel">
+          <div class="panel-head"><h2>收药计数相机</h2><span id="collectionCameraState">等待画面</span></div>
+          <div class="camera-frame"><img id="collectionCamera" alt="收药计数相机画面" hidden><div id="collectionCameraEmpty" class="camera-empty">无画面</div></div>
+        </article>
+      </div>
+
+      <aside class="side-stack">
+        <section class="panel">
+          <div class="panel-head"><h2>抓药任务</h2><span id="taskProgress">0 / 0</span></div>
+          <div class="task-form">
+            <div class="metric-label">AI 下发药仓顺序</div>
+            <div id="taskOrder" class="metric-value">等待决策 AI 下发任务</div>
+            <div class="actions"><button id="resetCollectionButton">重置收药计数</button></div>
+          </div>
+        </section>
+        <section class="panel">
+          <div class="panel-head"><h2>进程状态</h2></div>
+          <ul id="processList" class="process-list"></ul>
+        </section>
+      </aside>
+    </section>
+
+    <section class="panel section">
+      <div class="panel-head"><h2>抓取示意图</h2><span id="captureCount">0 张</span></div>
+      <div id="captureGrid" class="capture-grid"><div class="empty">暂无示意图</div></div>
+    </section>
+
+    <section class="panel section">
+      <div class="panel-head"><h2>进程日志</h2><button id="clearLogsButton">清空显示</button></div>
+      <div id="logs" class="logs"></div>
+    </section>
+  </main>
+
+  <script>
+    const phaseNames = {
+      idle: '等待任务', starting: '准备中', observing: '前往观察位',
+      capturing: '生成示意图', picking: '抓取中', completed: '抓药完成',
+      error: '任务错误', unknown: '状态未知'
+    };
+    let lastLogId = 0;
+
+    async function post(url, payload = {}) {
+      const response = await fetch(url, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)});
+      const result = await response.json();
+      if (!response.ok || result.ok === false) throw new Error(result.error || '请求失败');
+      return result;
+    }
+
+    function setTone(element, tone) {
+      element.classList.remove('good', 'warn', 'bad');
+      if (tone) element.classList.add(tone);
+    }
+
+    async function refreshStatus() {
+      try {
+        const response = await fetch('/api/status', {cache: 'no-store'});
+        const data = await response.json();
+        const processData = data.processes;
+        const task = data.task;
+        const collection = data.collection;
+        updateCameraState('pick', data.cameras.pick);
+        updateCameraState('collection', data.cameras.collection);
+
+        const systemStatus = document.getElementById('systemStatus');
+        systemStatus.textContent = processData.all_running ? '运行正常' : '未全部运行';
+        setTone(systemStatus, processData.all_running ? 'good' : 'bad');
+        document.getElementById('startButton').disabled = processData.all_running;
+
+        const taskStatus = document.getElementById('taskStatus');
+        taskStatus.textContent = phaseNames[task.phase] || task.message;
+        setTone(taskStatus, task.phase === 'completed' ? 'good' : task.phase === 'error' ? 'bad' : task.phase === 'idle' ? '' : 'warn');
+        document.getElementById('currentSlot').textContent = task.current_slot ?? '-';
+        document.getElementById('taskProgress').textContent = `${task.current_index || 0} / ${task.total || 0}`;
+        document.getElementById('taskOrder').textContent = task.slot_indices?.length
+          ? task.slot_indices.join(' → ')
+          : '等待决策 AI 下发任务';
+
+        const collectionStatus = document.getElementById('collectionStatus');
+        collectionStatus.textContent = `${collection.detected_count || 0} / ${collection.expected_count || 0}` + (collection.complete ? ' 已收齐' : '');
+        setTone(collectionStatus, collection.complete ? 'good' : collection.active ? 'warn' : '');
+
+        document.getElementById('processList').innerHTML = processData.processes.map(item => `
+          <li><span class="process-name"><span class="dot ${item.running ? 'on' : ''}"></span>${item.label}</span><span>${item.running ? `PID ${item.pid}` : '已停止'}</span></li>
+        `).join('');
+
+        renderCaptures(data.captures || []);
+      } catch (error) {
+        const status = document.getElementById('systemStatus');
+        status.textContent = '控制台连接异常';
+        setTone(status, 'bad');
+      }
+    }
+
+    function renderCaptures(captures) {
+      document.getElementById('captureCount').textContent = `${captures.length} 张`;
+      const grid = document.getElementById('captureGrid');
+      if (!captures.length) {
+        grid.innerHTML = '<div class="empty">暂无示意图</div>';
+        return;
+      }
+      grid.innerHTML = captures.map(item => `
+        <div class="capture"><a href="${item.url}" target="_blank"><img src="${item.url}?t=${item.updated_at}" alt="抓取示意图"></a><div class="capture-name">${item.name}</div></div>
+      `).join('');
+    }
+
+    async function refreshLogs() {
+      try {
+        const response = await fetch(`/api/logs?after=${lastLogId}`, {cache: 'no-store'});
+        const data = await response.json();
+        if (!data.logs.length) return;
+        const box = document.getElementById('logs');
+        for (const entry of data.logs) {
+          lastLogId = Math.max(lastLogId, entry.id);
+          const line = document.createElement('div');
+          line.className = 'log-line';
+          line.innerHTML = `<span class="log-time">${entry.time}</span> <span class="log-source">[${entry.source}]</span> ${escapeHtml(entry.message)}`;
+          box.appendChild(line);
+        }
+        box.scrollTop = box.scrollHeight;
+      } catch (_) {}
+    }
+
+    function escapeHtml(value) {
+      const node = document.createElement('div');
+      node.textContent = value;
+      return node.innerHTML;
+    }
+
+    function refreshCameras() {
+      const stamp = Date.now();
+      refreshCamera('pick', `/camera/pick.jpg?t=${stamp}`);
+      refreshCamera('collection', `/camera/collection.jpg?t=${stamp}`);
+    }
+
+    function updateCameraState(name, state) {
+      const image = document.getElementById(`${name}Camera`);
+      const label = document.getElementById(`${name}CameraState`);
+      image.dataset.available = state.available ? 'true' : 'false';
+      label.textContent = state.available ? '实时' : state.running ? '等待画面' : '未运行';
+      setTone(label, state.available ? 'good' : state.running ? 'warn' : 'bad');
+      if (!state.available) showNoCamera(name);
+    }
+
+    function refreshCamera(name, source) {
+      const image = document.getElementById(`${name}Camera`);
+      if (image.dataset.available !== 'true') return;
+      image.onload = () => {
+        image.hidden = false;
+        document.getElementById(`${name}CameraEmpty`).hidden = true;
+      };
+      image.onerror = () => showNoCamera(name);
+      image.src = source;
+    }
+
+    function showNoCamera(name) {
+      const image = document.getElementById(`${name}Camera`);
+      image.hidden = true;
+      image.removeAttribute('src');
+      document.getElementById(`${name}CameraEmpty`).hidden = false;
+    }
+
+    document.getElementById('startButton').onclick = async () => {
+      try { await post('/api/start'); } catch (error) { alert(error.message); }
+      refreshStatus();
+    };
+    document.getElementById('stopButton').onclick = async () => {
+      try { await post('/api/stop'); } catch (error) { alert(error.message); }
+      refreshStatus();
+    };
+    document.getElementById('emergencyButton').onclick = async () => {
+      if (!confirm('确认发送机械臂急停命令？')) return;
+      try { await post('/api/emergency-stop'); } catch (error) { alert(error.message); }
+    };
+    document.getElementById('resetCollectionButton').onclick = async () => {
+      try { await post('/api/collection-reset'); } catch (error) { alert(error.message); }
+    };
+    document.getElementById('clearLogsButton').onclick = () => { document.getElementById('logs').innerHTML = ''; };
+
+    refreshStatus();
+    refreshLogs();
+    refreshCameras();
+    setInterval(refreshStatus, 800);
+    setInterval(refreshLogs, 600);
+    setInterval(refreshCameras, 150);
+  </script>
+</body>
+</html>

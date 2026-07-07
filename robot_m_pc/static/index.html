@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>岐黄智取 · 远程问诊</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="seal">岐</div>
+        <div><h1>岐黄智取</h1><p>远程健康咨询与药仓协作台</p></div>
+      </div>
+      <div class="status-row">
+        <span class="status" id="modelStatus">模型检查中</span>
+        <span class="status" id="robotStatus">机械臂检查中</span>
+      </div>
+    </header>
+
+    <main class="layout">
+      <div class="main-column">
+        <section class="consultation panel">
+        <div class="panel-head">
+          <div><span class="eyebrow">CONSULTATION</span><h2>问诊对话</h2></div>
+          <button class="ghost" id="newSession">新建问诊</button>
+        </div>
+        <div class="messages" id="messages" aria-live="polite">
+          <div class="message assistant">
+            <div class="avatar">AI</div>
+            <div class="bubble">你好，请告诉我现在最明显的症状和持续时间。为了完成望诊分析，也请点击右侧“开启摄像头”，然后发送当前画面。</div>
+          </div>
+        </div>
+        <div class="composer">
+          <textarea id="messageInput" rows="2" placeholder="描述症状，按 Enter 发送，Shift+Enter 换行"></textarea>
+          <div class="composer-actions">
+            <button class="camera-button" id="cameraToggle">开启摄像头拍摄</button>
+            <label class="capture-option"><input type="checkbox" id="attachFrame" disabled> 随消息附带当前画面</label>
+            <button class="send" id="sendButton">发送问诊</button>
+          </div>
+        </div>
+        </section>
+
+        <section class="cabinet panel">
+          <div class="panel-head compact"><div><span class="eyebrow">CABINET</span><h2>12 位药仓</h2></div></div>
+          <div class="drug-grid" id="drugGrid"></div>
+          <div class="capture-section" id="captureSection" hidden>
+            <div class="capture-title"><span>VISION CAPTURES</span><b>抓取示意图</b></div>
+            <div class="capture-gallery" id="captureGallery"></div>
+          </div>
+        </section>
+      </div>
+
+      <aside class="sidebar">
+        <section class="camera-card panel">
+          <div class="panel-head compact">
+            <div><span class="eyebrow">CAMERA</span><h2>面部观察</h2></div>
+            <span class="privacy">仅本次发送</span>
+          </div>
+          <div class="video-wrap">
+            <video id="video" playsinline autoplay muted></video>
+            <canvas id="canvas" hidden></canvas>
+            <div class="video-empty" id="videoEmpty"><span>◎</span><p>摄像头尚未开启</p></div>
+          </div>
+          <button class="analyze-frame" id="analyzeFrame" disabled>采集画面并请 AI 分析</button>
+          <p class="hint">画面仅作为有限的视觉观察，光线和镜头会影响结果，不能用于确诊。</p>
+        </section>
+
+        <section class="plan-card panel" id="planCard">
+          <div class="panel-head compact">
+            <div><span class="eyebrow">DISPENSE PLAN</span><h2>抓药方案</h2></div>
+            <span class="plan-state" id="planState">暂无</span>
+          </div>
+          <div class="empty-plan" id="emptyPlan">模型形成方案后会立即调用真实机械臂，并在这里显示执行结果。</div>
+          <div id="planContent" hidden>
+            <div class="plan-items" id="planItems"></div>
+            <div class="rationale" id="rationale"></div>
+            <div class="execution-results" id="executionResults">等待机械臂执行…</div>
+          </div>
+        </section>
+
+      </aside>
+    </main>
+  </div>
+  <div class="toast" id="toast"></div>
+  <script src="/static/app.js" defer></script>
+</body>
+</html>
